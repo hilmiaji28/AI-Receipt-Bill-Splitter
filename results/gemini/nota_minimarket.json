@@ -1,0 +1,47 @@
+```json
+{
+  "store_name": "Pradana Swalayan",
+  "items": [
+    {
+      "name": "MINYAK SEDAAP RFL 1LITER",
+      "quantity": 1,
+      "unit_price": 18500,
+      "total_price": 18500
+    },
+    {
+      "name": "SAJIKU TEPUNG BUMBU PEDAS 70GR",
+      "quantity": 2,
+      "unit_price": 2500,
+      "total_price": 5000
+    },
+    {
+      "name": "DODO COTTEN BUDS 131 (150PCS)",
+      "quantity": 1,
+      "unit_price": 8000,
+      "total_price": 8000
+    },
+    {
+      "name": "MAM LIME CHARCOAL 800ML",
+      "quantity": 1,
+      "unit_price": 13000,
+      "total_price": 13000
+    },
+    {
+      "name": "PANTENE CONDITIONER BLACK 75ML",
+      "quantity": 1,
+      "unit_price": 16000,
+      "total_price": 16000
+    },
+    {
+      "name": "REXONA HIJAB NAT PEACH 45ML",
+      "quantity": 1,
+      "unit_price": 21500,
+      "total_price": 21500
+    }
+  ],
+  "subtotal": 82000,
+  "tax": 0,
+  "service_charge": 0,
+  "total_bill": 82000
+}
+```

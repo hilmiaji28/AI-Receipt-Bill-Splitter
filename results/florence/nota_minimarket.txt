@@ -1,0 +1,18 @@
+FILE: nota_minimarket.jpg
+TIME: 37.88
+
+ract all receipt information.
+
+Return:
+- store name
+- item name
+
+- quantity
+- unit price
+- total item price
+– subtotal
+- tax
+- service charge
+-total bill
+
+Output structured text

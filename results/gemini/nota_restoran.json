@@ -1,0 +1,53 @@
+```json
+{
+  "store_name": "MIE GACOAN",
+  "items": [
+    {
+      "name": "MIE GACOAN LV 1",
+      "quantity": 1,
+      "unit_price": 10000,
+      "total_price": 10000
+    },
+    {
+      "name": "MIE GACOAN LV 2",
+      "quantity": 1,
+      "unit_price": 10000,
+      "total_price": 10000
+    },
+    {
+      "name": "MIE GACOAN LV 3",
+      "quantity": 1,
+      "unit_price": 10000,
+      "total_price": 10000
+    },
+    {
+      "name": "UDANG KEJU",
+      "quantity": 1,
+      "unit_price": 9099,
+      "total_price": 9099
+    },
+    {
+      "name": "UDANG RAMBUTAN",
+      "quantity": 2,
+      "unit_price": 9099,
+      "total_price": 18198
+    },
+    {
+      "name": "ES GOBAK SODOR",
+      "quantity": 1,
+      "unit_price": 9099,
+      "total_price": 9099
+    },
+    {
+      "name": "TEA",
+      "quantity": 1,
+      "unit_price": 4099,
+      "total_price": 4099
+    }
+  ],
+  "subtotal": 70495,
+  "tax": 7050,
+  "service_charge": 0,
+  "total_bill": 77500
+}
+```
