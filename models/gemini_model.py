@@ -1,5 +1,6 @@
 import json
 import os
+import streamlit as st
 
 from dotenv import load_dotenv
 from google import genai
@@ -13,17 +14,18 @@ class GeminiReceiptExtractor:
 
     def __init__(self):
 
-        self.donut = DonutReceiptExtractor()
+        self.donut = None 
 
         load_dotenv()
 
-        api_key = os.getenv(
-            "GEMINI_API_KEY"
+        api_key = (
+            os.getenv("GEMINI_API_KEY")
+            or st.secrets.get("GEMINI_API_KEY")
         )
 
         if not api_key:
             raise ValueError(
-                "GEMINI_API_KEY not found in .env"
+                "GEMINI_API_KEY not found"
             )
 
         self.client = genai.Client(
@@ -111,14 +113,9 @@ Rules:
                 "Switching to Donut..."
             )
 
-            donut_result = (
-                self.donut.extract_receipt(
-                    image_source
-                )
-            )
+            if self.donut is None:
+                self.donut = DonutReceiptExtractor()
 
-            donut_result[
-                "model_used"
-            ] = "Donut (Fallback)"
-
-            return donut_result
+            return self.donut.extract_receipt(
+                image_source
+            ) 
