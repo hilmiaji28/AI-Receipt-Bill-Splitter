@@ -290,6 +290,12 @@ if uploaded_files:
                             receipt_data
                         )
 
+                        st.markdown("---")
+
+                    # ==========================================
+                    # MERGE RECEIPTS
+                    # ==========================================
+
                     merged_result = (
                         merger.merge(
                             all_receipts
