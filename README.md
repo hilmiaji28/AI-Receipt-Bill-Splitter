@@ -1,350 +1,243 @@
 # AI Receipt Bill Splitter
 
-An AI-powered web application that automatically extracts receipt information and calculates bill splitting among participants.
+An AI-powered receipt processing and bill splitting application built with Streamlit, Gemini AI, and Donut OCR.
 
-Built with **Python**, **Streamlit**, and **Google Gemini 2.5 Flash**.
-
----
-
-# Project Overview
-
-AI Receipt Bill Splitter is a web-based application designed to simplify the process of splitting bills among multiple people.
-
-The system uses Artificial Intelligence to automatically extract receipt information from uploaded receipt images and calculate how much each participant should pay based on item ownership.
-
-The project was developed as part of an AI Prototype Assignment covering:
-
-1. Receipt Extraction Model Research
-2. Prototype Development
-3. Evaluation and Analysis
+The application automatically extracts receipt information, supports multiple receipt uploads, and provides advanced bill splitting features including single payer, equal split, and custom percentage allocation.
 
 ---
 
-# Features
+## Features
 
-## Receipt Extraction
+### AI Receipt Extraction
 
-The application automatically extracts:
+* Extract receipt information from images
+* Store name detection
+* Itemized product extraction
+* Quantity detection
+* Unit price extraction
+* Total price extraction
+* Tax and service charge extraction
+* Total bill calculation
 
-* Store name
-* Item name
-* Quantity
-* Unit price
-* Total item price
-* Subtotal
-* Tax
-* Service charge
-* Total bill
+### OCR Models
 
----
+#### Gemini 2.5 Flash (Primary Model)
 
-## Participant Management
+* Fast extraction
+* Structured JSON output
+* High accuracy receipt understanding
 
-Users can:
+#### Donut OCR (Fallback Model)
 
-* Add participants directly from the UI
-* Manage multiple participants
-* Assign purchased items to specific participants
-
----
-
-## Bill Splitting
-
-The system automatically:
-
-* Calculates each participant's subtotal
-* Distributes tax and additional charges proportionally
-* Calculates the final payment amount per participant
+* Local OCR processing
+* Automatic fallback when Gemini API is unavailable
+* Ensures application reliability
 
 ---
 
-## Validation
+## Multi Receipt Support
+
+Users can upload and merge multiple receipts into a single transaction.
+
+Supported formats:
+
+* JPG
+* JPEG
+* PNG
+
+Example:
+
+Receipt A + Receipt B + Receipt C
+
+↓
+
+Combined Receipt
+
+---
+
+## Advanced Bill Splitting
+
+### Single Payer
+
+Assign an item to a single participant.
+
+Example:
+
+Burger → Hilmi
+
+### Equal Split
+
+Split an item equally among selected participants.
+
+Example:
+
+Pizza (Rp 90,000)
+
+Hilmi
+Keni
+Rina
+
+↓
+
+Rp 30,000 each
+
+### Custom Percentage Split
+
+Split an item using custom percentages.
+
+Example:
+
+Pizza (Rp 90,000)
+
+Hilmi → 50%
+Keni → 30%
+Rina → 20%
+
+↓
+
+Hilmi → Rp 45,000
+Keni → Rp 27,000
+Rina → Rp 18,000
+
+---
+
+## Automatic Tax and Service Distribution
+
+Tax and service charges are automatically distributed proportionally based on each participant's subtotal contribution.
+
+This ensures fair allocation of additional costs.
+
+---
+
+## Validation System
 
 The application validates:
 
-```text
-Total Split Amount = Total Receipt Amount
-```
-
-to ensure accurate bill calculations.
-
----
-
-## Download Results
-
-Users can export:
-
-* CSV Report
-* JSON Report
+* Custom percentage totals equal 100%
+* Equal split contains at least one participant
+* Split total matches receipt total
+* Rounding differences are automatically corrected
 
 ---
 
-## History Management
+## Application Workflow
 
-Users can:
+1. Upload receipt image(s)
+2. Extract receipt information using Gemini AI
+3. Fallback to Donut OCR if Gemini is unavailable
+4. Merge multiple receipts (optional)
+5. Add participants
+6. Assign items to participants
+7. Choose split mode:
 
-* View bill split history
-* Clear history
-* Reset application state
-
----
-
-# Pre-Prototype Research
-
-Before developing the final prototype, several OCR-free document understanding models were evaluated using two receipt images:
-
-### Dataset
-
-* Retail Receipt (Pradana Swalayan)
-* Restaurant Receipt (Mie Gacoan)
-
-The objective was to compare:
-
-* Extraction accuracy
-* Inference speed
-* Output quality
-* Suitability for receipt understanding
+   * Single
+   * Equal
+   * Custom Percentage
+8. Calculate bill split
+9. Review results
+10. Download reports
 
 ---
 
-## Model 1 — Donut
-
-Model:
+## Project Structure
 
 ```text
-naver-clova-ix/donut-base-finetuned-cord-v2
-```
-
-### Results
-
-Advantages:
-
-* Fully local model
-* OCR-free architecture
-* Able to extract most receipt items
-
-Limitations:
-
-* Incorrect extraction of subtotal and total bill
-* Multiple parsing errors on restaurant receipts
-* Slower inference
-
-Average Inference Time:
-
-```text
-20 – 22 seconds
-```
-
----
-
-## Model 2 — Florence-2
-
-Model:
-
-```text
-microsoft/Florence-2-base
-```
-
-### Results
-
-Advantages:
-
-* Powerful multimodal architecture
-
-Limitations:
-
-* Failed to generate usable receipt information
-* Output was not structured
-* Unsuitable without additional fine-tuning
-
-Average Inference Time:
-
-```text
-25 – 38 seconds
-```
-
----
-
-## Model 3 — Pix2Struct
-
-Model:
-
-```text
-google/pix2struct-base
-```
-
-### Results
-
-Advantages:
-
-* OCR-free architecture
-
-Limitations:
-
-* Failed to extract meaningful receipt information
-* Extremely slow on CPU
-
-Average Inference Time:
-
-```text
-Approximately 16 minutes per image
-```
-
----
-
-## Model 4 — Gemini 2.5 Flash
-
-Model:
-
-```text
-gemini-2.5-flash
-```
-
-### Results
-
-Advantages:
-
-* Highest extraction accuracy
-* Structured JSON output
-* Fast inference
-* Accurate subtotal, tax, and total bill extraction
-
-Average Inference Time:
-
-```text
-6 – 8 seconds
-```
-
----
-
-## Model Comparison
-
-| Model            | Accuracy | Speed     | Decision |
-| ---------------- | -------- | --------- | -------- |
-| Donut            | Medium   | Medium    | Baseline |
-| Florence-2       | Low      | Medium    | Rejected |
-| Pix2Struct       | Low      | Very Slow | Rejected |
-| Gemini 2.5 Flash | High     | Fast      | Selected |
-
----
-
-# Final Model Selection
-
-Based on qualitative evaluation and inference speed testing, **Gemini 2.5 Flash** was selected as the primary receipt extraction model.
-
-Reasons:
-
-* Highest extraction accuracy
-* Fastest response time
-* Structured JSON output
-* Better understanding of receipt layouts
-* More reliable across different receipt types
-
-Donut is retained as an experimental fallback model.
-
----
-
-# System Architecture
-
-```text
-User
- │
- ▼
-Upload Receipt
- │
- ▼
-Gemini Receipt Extraction
- │
- ▼
-Structured JSON Receipt
- │
- ▼
-Participant Assignment
- │
- ▼
-Bill Split Calculation
- │
- ▼
-Validation
- │
- ▼
-Download Result
-```
-
----
-
-# Project Structure
-
-```text
-Assignment_Day_51/
+AI-Receipt-Bill-Splitter
 │
 ├── app.py
 │
-├── models/
+├── models
 │   ├── gemini_model.py
 │   └── donut_model.py
 │
-├── services/
-│   └── bill_splitter.py
+├── services
+│   ├── bill_splitter.py
+│   └── receipt_merger.py
 │
-├── pre_prototype/
+├── pre_prototype
 │   ├── donut_pre.py
 │   ├── florence_pre.py
 │   └── pix2struct_pre.py
 │
-├── receipts/
-│   ├── nota_minimarket.jpg
-│   └── nota_restoran.jpg
+├── receipts
 │
-├── results/
-│   ├── donut/
-│   ├── florence/
-│   ├── gemini/
-│   └── pix2struct/
+├── results
+│   ├── donut
+│   ├── florence
+│   ├── gemini
+│   └── pix2struct
 │
-├── .env
+├── results_figure
+│
+├── test_gemini.py
+├── test_split.py
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-# Installation
+## Pre-Prototype Experiments
 
-## Clone Repository
+Before building the final application, multiple OCR and vision-language models were evaluated.
 
-```bash
-git clone <repository-url>
-cd Assignment_Day_51
-```
+### Pix2Struct
+
+* Tested receipt understanding capability
+* Slow inference on CPU
+* Poor structured extraction performance
+
+### Florence
+
+* Tested as an alternative vision-language model
+* Experimental stage
+* Less reliable for receipt extraction
+
+### Donut
+
+* Strong OCR performance
+* Better structured extraction
+* Selected as fallback OCR model
+
+### Gemini 2.5 Flash
+
+* Best extraction quality
+* Fast inference
+* Selected as primary extraction model
 
 ---
 
-## Create Virtual Environment
+## Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/hilmiaji28/AI-Receipt-Bill-Splitter.git
+
+cd AI-Receipt-Bill-Splitter
+```
+
+### Create Virtual Environment
 
 ```bash
 python -m venv venv
 ```
 
-Activate environment:
+### Activate Environment
 
-Windows:
+Windows
 
 ```bash
 venv\Scripts\activate
 ```
 
----
-
-## Install Dependencies
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Create Environment Variables
+### Configure Environment Variables
 
 Create a `.env` file:
 
@@ -352,13 +245,9 @@ Create a `.env` file:
 GEMINI_API_KEY=YOUR_API_KEY
 ```
 
-Get your API key from:
-
-https://aistudio.google.com/
-
 ---
 
-# Running the Application
+## Run Application
 
 ```bash
 streamlit run app.py
@@ -372,80 +261,34 @@ http://localhost:8501
 
 ---
 
-# Testing Results
-
-The application was tested using:
-
-* Retail receipts
-* Restaurant receipts
-
-Evaluation criteria:
-
-* Item extraction accuracy
-* Total bill accuracy
-* Inference speed
-* Split bill correctness
-
----
-
-# Product Evaluation
-
-## Strengths
-
-* Accurate receipt extraction
-* Automatic bill splitting
-* Clean and user-friendly interface
-* Downloadable reports
-* Validation mechanism
-* History tracking
-
----
-
-## Limitations
-
-### AI Model
-
-* Gemini requires internet access
-* API rate limits may occur
-* Low-quality receipt images may reduce accuracy
-
-### Web Application
-
-* Shared-item splitting is not supported
-* No user authentication
-* History is session-based
-
----
-
-# Future Improvements
-
-Potential future enhancements:
-
-* Shared item splitting
-* Database integration (SQLite/PostgreSQL)
-* User authentication
-* Receipt preprocessing
-* Fine-tuned receipt extraction model
-* Cloud deployment
-* Multi-language receipt support
-
----
-
-# Technologies Used
+## Technologies Used
 
 * Python
 * Streamlit
-* Google Gemini 2.5 Flash
-* Donut
-* PyTorch
+* Google Gemini API
+* Donut OCR
 * Transformers
+* PyTorch
 * Pandas
 * Pillow
-* dotenv
 
 ---
 
-# Author
+## Future Improvements
 
-**Hilmi Aji**
-AI Receipt Bill Splitter Project
+* Multi-user collaboration
+* Shared payment links
+* QRIS integration
+* WhatsApp export
+* Expense analytics dashboard
+* Cloud deployment
+
+---
+
+## Author
+
+Hilmi Aji
+
+Agricultural Engineering – Bandung Institute of Technology (ITB)
+
+Sales & Distribution Professional | Data Science & Machine Learning Enthusiast

@@ -5,6 +5,9 @@ import streamlit as st
 from models.gemini_model import GeminiReceiptExtractor
 from services.bill_splitter import BillSplitter
 from datetime import datetime
+from services.receipt_merger import (
+    ReceiptMerger
+)
 
 # ==================================================
 # PAGE CONFIG
@@ -156,52 +159,168 @@ st.write("")
 
 st.subheader("📤 Upload Receipt")
 
-uploaded_file = st.file_uploader(
-    "Choose receipt image",
-    type=["jpg", "jpeg", "png"]
+uploaded_files = st.file_uploader(
+    "Upload Receipt(s)",
+    type=[
+        "jpg",
+        "jpeg",
+        "png"
+    ],
+    accept_multiple_files=True
 )
 
-if uploaded_file:
+if uploaded_files:
 
-    col1, col2 = st.columns([1, 2])
+    if "merger" not in st.session_state:
+        st.session_state["merger"] = ReceiptMerger()
 
-    with col1:
+    merger = st.session_state["merger"]
 
-        st.image(
-            uploaded_file,
-            caption="Receipt Preview",
-            use_container_width=True
+    uploaded_file = None
+
+    # ==========================================
+    # SINGLE RECEIPT
+    # ==========================================
+
+    if len(uploaded_files) == 1:
+
+        uploaded_file = uploaded_files[0]
+
+        st.success(
+            "✅ One receipt uploaded"
         )
 
-    with col2:
+        col1, col2 = st.columns([1, 2])
 
-        st.info(
-            "Click Extract Receipt to analyze the uploaded receipt."
+        with col1:
+
+            st.image(
+                uploaded_file,
+                caption="Receipt Preview",
+                use_container_width=True
+            )
+
+        with col2:
+
+            st.info(
+                "Click Extract Receipt to analyze the uploaded receipt."
+            )
+
+            if st.button(
+                "🚀 Extract Receipt",
+                use_container_width=True
+            ):
+
+                with st.spinner(
+                    "Analyzing receipt..."
+                ):
+
+                    receipt = (
+                        extractor.extract_receipt(
+                            uploaded_file
+                        )
+                    )
+
+                    st.session_state["receipt"] = receipt
+
+                    st.session_state.pop(
+                        "result",
+                        None
+                    )
+
+                    st.session_state.pop(
+                        "assignments",
+                        None
+                    )
+
+                    st.toast(
+                        "Receipt extracted successfully ✅"
+                    )
+
+                    st.rerun()
+
+    # ==========================================
+    # MULTIPLE RECEIPTS
+    # ==========================================
+
+    else:
+
+        st.subheader(
+            "🧾 Uploaded Receipts"
         )
+
+        cols = st.columns(
+            len(uploaded_files)
+        )
+
+        for idx, file in enumerate(
+            uploaded_files
+        ):
+
+            with cols[idx]:
+
+                st.image(
+                    file,
+                    caption=file.name,
+                    use_container_width=True
+                )
 
         if st.button(
-            "🚀 Extract Receipt",
+            "🚀 Merge & Extract Receipts",
             use_container_width=True
         ):
 
             with st.spinner(
-                "Analyzing receipt..."
+                "⏳ Processing receipts..."
             ):
 
-                receipt = (
-                    extractor.extract_receipt(
-                        uploaded_file
+                try:
+
+                    all_receipts = []
+
+                    for file in uploaded_files:
+
+                        receipt_data = (
+                            extractor.extract_receipt(
+                                file
+                            )
+                        )
+
+                        all_receipts.append(
+                            receipt_data
+                        )
+
+                    merged_result = (
+                        merger.merge(
+                            all_receipts
+                        )
                     )
-                )
 
-                st.session_state["receipt"] = receipt
+                    st.session_state[
+                        "receipt"
+                    ] = merged_result
 
-                st.session_state.pop("result", None)
-                st.session_state.pop("assignments", None)
-                
-                st.toast(
-                    "Receipt extracted successfully ✅"
-                ) 
+                    st.session_state.pop(
+                        "result",
+                        None
+                    )
+
+                    st.session_state.pop(
+                        "assignments",
+                        None
+                    )
+
+                    st.success(
+                        f"✅ Merged {len(uploaded_files)} receipts into one!"
+                    )
+
+                    st.rerun()
+
+                except Exception as e:
+
+                    st.error(
+                        f"❌ Error merging receipts: {e}"
+                    )
 
 # ==================================================
 # SHOW RECEIPT
@@ -275,19 +394,36 @@ if "receipt" in st.session_state:
         receipt["items"]
     )
 
-    df.columns = [
-        "Item Name",
-        "Quantity",
-        "Unit Price",
-        "Total Price"
+    rename_map = {
+        "store_name": "Store",
+        "name": "Item Name",
+        "quantity": "Quantity",
+        "unit_price": "Unit Price",
+        "total_price": "Total Price"
+    }
+
+    df = df.rename(
+        columns=rename_map
+    )
+
+    display_columns = [
+        col
+        for col in [
+            "Store",
+            "Item Name",
+            "Quantity",
+            "Unit Price",
+            "Total Price"
+        ]
+        if col in df.columns
     ]
 
     st.dataframe(
-        df,
+        df[display_columns],
         use_container_width=True,
         hide_index=True
     )
-
+    
     st.markdown("---")
 
     # ==============================================
@@ -340,47 +476,170 @@ if "receipt" in st.session_state:
 
             for idx, item in enumerate(receipt["items"]):
 
-                payer = st.selectbox(
-                    f"{item['name']} (Rp {item['total_price']:,})",
-                    participants,
-                    key=f"{item['name']}_{idx}"
+                item_key = f"{item['name']}_{idx}"
+
+                st.markdown(
+                    f"**{item['name']}** "
+                    f"(Rp {item['total_price']:,})"
                 )
 
-                assignments[
-                    f"{item['name']}_{idx}"
-                ] = payer
+                mode = st.radio(
+                    "Split Mode",
+                    [
+                        "Single",
+                        "Equal",
+                        "Custom"
+                    ],
+                    horizontal=True,
+                    key=f"mode_{item_key}"
+                )
 
-            # ==========================================
-            # CALCULATE BUTTON
-            # ==========================================
+                # ==========================
+                # SINGLE
+                # ==========================
 
-            if st.button(
-                "💰 Calculate Bill Split",
-                use_container_width=True
-            ):
+                if mode == "Single":
 
-                result = (
-                    splitter.calculate(
-                        receipt,
-                        assignments
+                    payer = st.selectbox(
+                        "Payer",
+                        participants,
+                        key=f"payer_{item_key}"
                     )
-                )
 
-                st.session_state["assignments"] = assignments
-                st.session_state["result"] = result
-
-                st.session_state["history"].append(
-                    {
-                        "Date": datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        "Store": receipt["store_name"],
-                        "Total": f"Rp {receipt['total_bill']:,}",
-                        "Participants": len(result)
+                    assignments[item_key] = {
+                        "mode": "single",
+                        "payer": payer
                     }
-                )
 
-                st.rerun()
+                # ==========================
+                # EQUAL SPLIT
+                # ==========================
+
+                elif mode == "Equal":
+
+                    selected = st.multiselect(
+                        "Participants",
+                        participants,
+                        default=participants[:2],
+                        key=f"equal_{item_key}"
+                    )
+
+                    assignments[item_key] = {
+                        "mode": "equal",
+                        "participants": selected
+                    }
+
+                # ==========================
+                # CUSTOM %
+                # ==========================
+
+                else:
+
+                    selected = st.multiselect(
+                        "Participants",
+                        participants,
+                        default=participants[:1],
+                        key=f"custom_{item_key}"
+                    )
+
+                    percentages = {}
+
+                    total_pct = 0
+
+                    for person in selected:
+
+                        pct = st.number_input(
+                            f"{person} %",
+                            min_value=0,
+                            max_value=100,
+                            value=0,
+                            step=5,
+                            key=f"pct_{item_key}_{person}"
+                        )
+
+                        percentages[person] = pct
+
+                        total_pct += pct
+
+                    st.caption(
+                        f"Total Percentage: {total_pct}%"
+                    )
+
+                    assignments[item_key] = {
+                        "mode": "custom",
+                        "participants": percentages
+                    }
+
+        st.markdown("---")
+
+        # ==========================================
+        # CALCULATE BUTTON
+        # ==========================================
+
+        if st.button(
+            "💰 Calculate Bill Split",
+            use_container_width=True
+        ):
+            for value in assignments.values():
+
+                if value["mode"] == "equal":
+
+                    if len(
+                        value["participants"]
+                    ) == 0:
+
+                        st.error(
+                            "Equal split requires at least one participant."
+                        )
+
+                        st.stop()
+
+                if value["mode"] == "custom":
+
+                    if len(
+                        value["participants"]
+                    ) == 0:
+
+                        st.error(
+                            "Custom split requires at least one participant."
+                        )
+
+                        st.stop()
+
+                    total_pct = sum(
+                        value["participants"].values()
+                    )
+
+                    if total_pct != 100:
+
+                        st.error(
+                            "Custom percentage must equal 100%"
+                        )
+
+                        st.stop()
+
+            result = (
+                splitter.calculate(
+                    receipt,
+                    assignments
+                )
+            )
+
+            st.session_state["assignments"] = assignments
+            st.session_state["result"] = result
+
+            st.session_state["history"].append(
+                {
+                    "Date": datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "Store": receipt["store_name"],
+                    "Total": f"Rp {receipt['total_bill']:,}",
+                    "Participants": len(result)
+                }
+            )
+
+            st.rerun()
 
 # ==================================================
 # RESULT
@@ -440,7 +699,60 @@ if "result" in st.session_state:
 
     detail_rows = []
 
-    for idx, item in enumerate(receipt["items"]):
+    for idx, item in enumerate(
+        receipt["items"]
+    ):
+
+        assignment = assignments.get(
+            f"{item['name']}_{idx}",
+            {}
+        )
+
+        mode = assignment.get(
+            "mode",
+            "-"
+        )
+
+        paid_by = "-"
+
+        split_detail = "-"
+
+        if mode == "single":
+
+            paid_by = assignment.get(
+                "payer",
+                "-"
+            )
+
+        elif mode == "equal":
+
+            participants = assignment.get(
+                "participants",
+                []
+            )
+
+            split_detail = ", ".join(
+                participants
+            )
+
+        elif mode == "custom":
+
+            percentages = assignment.get(
+                "participants",
+                {}
+            )
+
+            parts = []
+
+            for person, pct in percentages.items():
+
+                parts.append(
+                    f"{person} ({pct}%)"
+                )
+
+            split_detail = ", ".join(
+                parts
+            )
 
         detail_rows.append(
             {
@@ -448,13 +760,12 @@ if "result" in st.session_state:
                 "Quantity": item["quantity"],
                 "Unit Price": item["unit_price"],
                 "Total Price": item["total_price"],
-                "Paid By": assignments.get(
-                    f"{item['name']}_{idx}",
-                    "-"
-                )
+                "Split Mode": mode,
+                "Paid By": paid_by,
+                "Split Detail": split_detail
             }
         )
-
+                
     detail_df = pd.DataFrame(
         detail_rows
     )
@@ -582,11 +893,11 @@ if "result" in st.session_state:
             f"Rp {total_split:,}"
         )
 
-    if (
+    if abs(
         total_split
-        ==
+        -
         receipt["total_bill"]
-    ):
+    ) <= 1:
 
         st.success(
             "✅ Validation Passed: Split total matches receipt total."
